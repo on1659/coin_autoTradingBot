@@ -1,11 +1,13 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from libary import tickerInfo
+from threading import Thread
 
 # Coin
 import coin
 
 # Libary
+import time
 
 # GUI
 from gui import ui
@@ -24,7 +26,6 @@ class makeFunction(object):
     # 버튼에 기능 연결
     def initSelectCoinInfo(self):
         self.initSelectCoinInfoComboBoxItem()   # 콤보박스 데이터 넣기 
-
 
         # 체크박스의 데이터 넣기
         self.ui.fiatKRW.stateChanged.connect(self.updateComboBoxItem)
@@ -76,7 +77,7 @@ class makeFunction(object):
         if markets == None:
            return
 
-        data = coin.currentCoinPriceInfo(markets)
+        data = coin.currentCoinPriceInfo(markets).json()
         flat = markets.split('-')[0]
         try:
             for info in data:
@@ -96,11 +97,34 @@ class makeFunction(object):
         self.ui.plainTextEdit.setPlainText(requestString)
         return
 
-    # 전체 계좌조회 버튼 클릭
-    # self.accountsInquiryBtn.setObjectName("accountsInquiryBtn")
-    def accountsInquiryBtnClick(self):
-        str = coin.accountsInquiry()
-        self.showText("전체 계좌조회\n" + coin.accountsInquiry())
+    # 내 계좌정보 업데이트
+    def updateAccountsInquiryInfo(self):
+        jsonData = coin.accountsInquiry()
+
+        totalPrice = 0.0
+        for data in jsonData:
+
+            currency = data['currency']
+            unit_currency = data['unit_currency']
+            if currency == 'KRW':
+                balance = data['balance']
+                self.ui.textBox_current_money = balance
+                continue
+
+            markets = unit_currency + '-' + currency
+            
+            balance = float(data['balance'])
+            respone = coin.currentCoinPriceInfo(markets)
+
+            if respone.status_code == 404:
+                continue
+
+            jsonPriceData = respone.json()
+            for info in jsonPriceData:
+                price = float(info['trade_price'])
+                totalPrice += balance * price
+
+        self.ui.textBox_tootal_buy_price = str(totalPrice)
         return
 
 
@@ -113,17 +137,49 @@ class makeFunction(object):
         return
 
 
-def initTextBoxControl():
+def runTextBoxGui():
     app = QtWidgets.QApplication(sys.argv)
     GroupBox = QtWidgets.QGroupBox()
-    ui_ = ui.Ui_GroupBox()
-    ui_.setupUi(GroupBox)
-    uiFunction = makeFunction(ui_)
+    
+    global uiFunction
+    mainUi = ui.Ui_GroupBox()
+    mainUi.setupUi(GroupBox)
+    uiFunction = makeFunction(mainUi)
+    
+    global isLoad
+    isLoad = 1
     GroupBox.show()
     sys.exit(app.exec_())
     return
 
 
+def updateInfo():
+
+    global isLoad
+    isLoad = 0
+
+    while (1):
+        if isLoad == 0:
+            continue
+        uiFunction.updateAccountsInquiryInfo()
+        #uiFunction.updateSelectCoinText()
+        time.sleep(1)
+
+    return
+
+
+
 if __name__ == '__main__':  # 프로그램의 시작점일 때만 아래 코드 실행
+    
+    # 데이터 초기화
     tickerInfoList = tickerInfo.getTickInfo()
-    initTextBoxControl()
+    
+    # thread 준비
+    logicThread = Thread(target = updateInfo)
+    logicThread.start()
+
+    # gui run
+    runTextBoxGui()
+
+    # thread kill
+    logicThread.join()

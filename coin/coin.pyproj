@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7033e98f-4763-4473-b427-10d2f3afcd5c</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>gui\textBoxControl.py</StartupFile>
+    <StartupFile>gui\uiControl.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -24,6 +24,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="coin.py" />
+    <Compile Include="example\threadExplam.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="gui\textBox.py" />
     <Compile Include="gui\textBoxControl.py">
       <SubType>Code</SubType>
@@ -48,6 +51,7 @@
   <ItemGroup>
     <Folder Include="gui\" />
     <Folder Include="libary\" />
+    <Folder Include="example\" />
   </ItemGroup>
   <ItemGroup>
     <Interpreter Include="env1\">
