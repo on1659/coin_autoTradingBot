@@ -1,5 +1,11 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QTextCursor
+from PyQt5.QtCore import *
+
+from PyQt5.QtWidgets import *
+from PyQt5 import uic
+
 from libary import tickerInfo
 from threading import Thread
 
@@ -8,6 +14,7 @@ import coin
 
 # Libary
 import time
+import datetime
 
 # GUI
 from gui import ui
@@ -15,12 +22,29 @@ import sys
 
 global tickerInfoList
 
-class makeFunction(object):
+class WorkerThread(QThread):
+    finished = pyqtSignal() 
+    
+    def run(self):
+        while True:
+            self.finished.emit()
+            self.sleep(5)
+        return
+
+class MainWindow(QMainWindow, QGroupBox):
    
     # 생성자
     def __init__(self, ui):
-      self.ui = ui
+      super().__init__()
+
+      self.ui = ui;
       self.initSelectCoinInfo();    #  코인정보 세팅
+
+      # Thread
+      self.worker = WorkerThread()
+      self.worker.finished.connect(self.updateAccountsInquiryInfo)
+      self.worker.start()
+
       return
 
     # 버튼에 기능 연결
@@ -98,7 +122,11 @@ class makeFunction(object):
         return
 
     # 내 계좌정보 업데이트
+    @pyqtSlot()
     def updateAccountsInquiryInfo(self):
+        
+        prevTime = datetime.datetime.now()
+
         jsonData = coin.accountsInquiry()
 
         totalPrice = 0.0
@@ -124,9 +152,14 @@ class makeFunction(object):
                 price = float(info['trade_price'])
                 totalPrice += balance * price
 
-        self.ui.textBox_tootal_buy_price = str(totalPrice)
-        return
+        self.ui.textBrowser_tootal_buy_price.setPlainText(str(totalPrice))
 
+        curTime = datetime.datetime.now()
+
+        t = prevTime - curTime
+        print(str(t.microseconds / 1000))
+
+        return
 
 
     # 단일 주문조회 버튼 클릭
@@ -137,49 +170,24 @@ class makeFunction(object):
         return
 
 
-def runTextBoxGui():
-    app = QtWidgets.QApplication(sys.argv)
-    GroupBox = QtWidgets.QGroupBox()
-    
-    global uiFunction
-    mainUi = ui.Ui_GroupBox()
-    mainUi.setupUi(GroupBox)
-    uiFunction = makeFunction(mainUi)
-    
-    global isLoad
-    isLoad = 1
-    GroupBox.show()
-    sys.exit(app.exec_())
-    return
-
-
-def updateInfo():
-
-    global isLoad
-    isLoad = 0
-
-    while (1):
-        if isLoad == 0:
-            continue
-        uiFunction.updateAccountsInquiryInfo()
-        #uiFunction.updateSelectCoinText()
-        time.sleep(1)
-
-    return
-
-
-
 if __name__ == '__main__':  # 프로그램의 시작점일 때만 아래 코드 실행
     
     # 데이터 초기화
     tickerInfoList = tickerInfo.getTickInfo()
     
-    # thread 준비
-    logicThread = Thread(target = updateInfo)
-    logicThread.start()
+    app = QtWidgets.QApplication(sys.argv)
+   
+    groupBox = QtWidgets.QGroupBox()
+    ui_ = ui.Ui_GroupBox()
+    ui_.setupUi(groupBox)
+    groupBox.show()
 
-    # gui run
-    runTextBoxGui()
+    global mainWindow
+    mainWindow = MainWindow(ui_)
+    
+    global isLoad
+    isLoad = 1
 
-    # thread kill
-    logicThread.join()
+    sys.exit(app.exec_())
+
+  

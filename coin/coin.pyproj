@@ -24,6 +24,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="coin.py" />
+    <Compile Include="example\QThreadExample.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="example\threadExplam.py">
       <SubType>Code</SubType>
     </Compile>
