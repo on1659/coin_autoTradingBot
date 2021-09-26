@@ -22,6 +22,17 @@ import sys
 
 global tickerInfoList
 
+def getMoneyValue(value, flat = "KRW", roundValue = 0):
+    fValue = float(value)
+    
+    if roundValue == 0:
+        nValue = round(fValue)
+    else:
+        nValue = round(fValue, roundValue)
+
+    valueStr = format(nValue, ",") + " " + flat
+    return valueStr
+
 class WorkerThread(QThread):
     finished = pyqtSignal() 
     
@@ -101,12 +112,16 @@ class MainWindow(QMainWindow, QGroupBox):
         if markets == None:
            return
 
-        data = coin.currentCoinPriceInfo(markets).json()
+        response = coin.currentCoinPriceInfo(markets)
+        if response.status_code != 200:
+            print("coin.currentCoinPriceInfo(markets) ErrorType(" + str(response.status_code) + ") Reason(" + response.reason + ")")
+            return
+
+        data = response.json()
         flat = markets.split('-')[0]
         try:
             for info in data:
-               price = format(info['trade_price'], ",")
-               text = str(price) + " " + flat
+               text = getMoneyValue(info['trade_price'])
 
         except Exception as x:
            text = (x.__class__.__name__)
@@ -124,41 +139,55 @@ class MainWindow(QMainWindow, QGroupBox):
     # 내 계좌정보 업데이트
     @pyqtSlot()
     def updateAccountsInquiryInfo(self):
-        
-        prevTime = datetime.datetime.now()
-
         jsonData = coin.accountsInquiry()
 
-        totalPrice = 0.0
+        totalEvaluatedPrice = 0.0
+        totalBuyPrice = 0.0
+        current_money = 0.0
+
         for data in jsonData:
 
             currency = data['currency']
             unit_currency = data['unit_currency']
             if currency == 'KRW':
-                balance = data['balance']
-                self.ui.textBox_current_money = balance
+                current_money = data['balance']
+                self.ui.textBrowser_current_money.setPlainText(getMoneyValue(current_money))
                 continue
 
             markets = unit_currency + '-' + currency
             
             balance = float(data['balance'])
-            respone = coin.currentCoinPriceInfo(markets)
+            response = coin.currentCoinPriceInfo(markets)
+             
+            totalBuyPrice += balance *  float(data['avg_buy_price']) # 매수 금액 Sum
 
-            if respone.status_code == 404:
+            if response.status_code == 404:
                 continue
 
-            jsonPriceData = respone.json()
+            if response.status_code != 200:
+                print ("coin.currentCoinPriceInfo(markets) ErrorType(" + str(response.status_code) + ") Reason(" + response.reason + ")")
+                continue
+
+            jsonPriceData = response.json()
             for info in jsonPriceData:
                 price = float(info['trade_price'])
-                totalPrice += balance * price
+                totalEvaluatedPrice += balance * price  # 총 평가금액
 
-        self.ui.textBrowser_tootal_buy_price.setPlainText(str(totalPrice))
 
-        curTime = datetime.datetime.now()
+        self.ui.textBrowser_total_evaluated_price.setPlainText(getMoneyValue(totalEvaluatedPrice))    # 현재 평가 금액
+        self.ui.textBrowser_tootal_buy_price.setPlainText(getMoneyValue(totalBuyPrice))               # 현재 구매 금액
 
-        t = prevTime - curTime
-        print(str(t.microseconds / 1000))
+        total_valuation = totalEvaluatedPrice - totalBuyPrice
+        self.ui.textBrowser_total_valuation.setPlainText(getMoneyValue(total_valuation))             # 현재 이득
 
+        
+        total_earning_percent = 0.0
+        if totalEvaluatedPrice > 0:
+            total_earning_percent = total_valuation / totalEvaluatedPrice * 100
+        self.ui.textBrowser_total_earning_percent.setPlainText(getMoneyValue(total_earning_percent, "%", 3))             # 현재 이득
+
+        total_asset = float(current_money) + totalEvaluatedPrice
+        self.ui.textBrowser_total_asset.setPlainText(getMoneyValue(total_asset))                      # 현재  토탈 금액
         return
 
 
