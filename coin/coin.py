@@ -16,6 +16,11 @@ from gui import textBox
 
 access_key =  os.environ['UPBIT_OPEN_API_ACCESS_KEY']
 secret_key =  os.environ['UPBIT_OPEN_API_SECRET_KEY']
+
+
+access_key_all =  os.environ['UPBIT_OPEN_API_ACCESS_KEY_ALL']
+secret_key_all =  os.environ['UPBIT_OPEN_API_SECRET_KEY_ALL']
+
 server_url = 'https://api.upbit.com'  # os.environ['UPBIT_OPEN_API_SERVER_URL']
 
 def accountsInquiry():
@@ -30,41 +35,6 @@ def accountsInquiry():
 
     res = requests.get(server_url + "/v1/accounts", headers=headers)
     return res.json()
-
-def allOrderListINquiry():
-    query = {
-        'state': 'done',
-    }
-    query_string = urlencode(query)
-
-    uuids = [
-        '9ca023a5-851b-4fec-9f0a-48cd83c2eaae',
-    ]
-    uuids_query_string = '&'.join(["uuids[]={}".format(uuid) for uuid in uuids])
-
-    query['uuids[]'] = uuids
-    query_string = "{0}&{1}".format(query_string, uuids_query_string).encode()
-
-    m = hashlib.sha512()
-    m.update(query_string)
-    query_hash = m.hexdigest()
-
-    payload = {
-        'access_key': access_key,
-        'nonce': str(uuid.uuid4()),
-        'query_hash': query_hash,
-        'query_hash_alg': 'SHA512',
-    }
-
-    jwt_token = jwt.encode(payload, secret_key)
-    authorize_token = 'Bearer {}'.format(jwt_token)
-    headers = {"Authorization": authorize_token}
-
-    res = requests.get(server_url + "/v1/orders", params=query, headers=headers)
-    json_data = res.json()
-    resultString = json.dumps(json_data, indent="\n")
-    print(resultString)
-    return resultString
 
 def singleOrdersInquiry(marketKey = 'KRW-BTC'):
     query = {
@@ -125,24 +95,6 @@ def walletHistory():
     print(resultString)
     return resultString
 
-def keyInfo():
-    payload = {
-        'access_key': access_key,
-        'nonce': str(uuid.uuid4()),
-    }
-
-    jwt_token = jwt.encode(payload, secret_key)
-    authorize_token = 'Bearer {}'.format(jwt_token)
-    headers = {"Authorization": authorize_token}
-
-    res = requests.get(server_url + "/v1/api_keys", headers=headers)
-
-    resultString = json.dumps(json_data, indent="\n")
-    print(resultString)
-    return resultString
-
-
-
 # 여기부터 사용
 
 # 코인 현재가 보는 프로그램
@@ -152,6 +104,85 @@ def currentCoinPriceInfo(markets):
     querystring = {"markets":markets}
     response = requests.request("GET", url, headers=headers,  params=querystring)
     return response
+
+
+
+# 주문가능 정보 조회
+def orderChance(markets):
+    query = {'market': markets }
+    query_string = urlencode(query).encode()
+
+    m = hashlib.sha512()
+    m.update(query_string)
+    query_hash = m.hexdigest()
+
+    payload = {
+        'access_key': access_key,
+        'nonce': str(uuid.uuid4()),
+        'query_hash': query_hash,
+        'query_hash_alg': 'SHA512',
+    }
+
+    jwt_token = jwt.encode(payload, secret_key)
+    authorize_token = 'Bearer {}'.format(jwt_token)
+    headers = {"Authorization": authorize_token}
+    response = requests.get(server_url + "/v1/orders/chance", params=query, headers=headers)
+    return response
+
+def ordersListInquiry():
+  #    query = {
+  #      'state': 'done',
+  #  }
+  #  query_string = urlencode(query)
+  #
+  #  query['uuids[]'] = uuids
+  #  query_string = "{0}&{1}".format(query_string, uuids_query_string).encode()
+  #
+  #  m = hashlib.sha512()
+  #  m.update(query_string)
+  #  query_hash = m.hexdigest()
+  #
+  #  payload = {
+  #      'access_key': access_key,
+  #      'nonce': str(uuid.uuid4()),
+  #      'query_hash': query_hash,
+  #      'query_hash_alg': 'SHA512',
+  #  }
+  #
+  #  jwt_token = jwt.encode(payload, secret_key)
+  #  authorize_token = 'Bearer {}'.format(jwt_token)
+  #  headers = {"Authorization": authorize_token}
+  #
+  #  res = requests.get(server_url + "/v1/orders", params=query, headers=headers)
+    return
+
+def order():
+    query = {
+    'market': 'KRW-XRP',
+    'side': 'bid',
+    'volume': '5',
+    'price': '1335.0',
+    'ord_type': 'limit',
+    }
+    query_string = urlencode(query).encode()
+
+    m = hashlib.sha512()
+    m.update(query_string)
+    query_hash = m.hexdigest()
+
+    payload = {
+        'access_key': access_key_all,
+        'nonce': str(uuid.uuid4()),
+        'query_hash': query_hash,
+        'query_hash_alg': 'SHA512',
+    }
+
+    jwt_token = jwt.encode(payload, secret_key_all)
+    authorize_token = 'Bearer {}'.format(jwt_token)
+    headers = {"Authorization": authorize_token}
+
+    res = requests.post(server_url + "/v1/orders", params=query, headers=headers)
+    return
 
 
 if __name__ == '__main__':  # 프로그램의 시작점일 때만 아래 코드 실행

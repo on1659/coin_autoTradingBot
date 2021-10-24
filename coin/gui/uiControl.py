@@ -66,6 +66,9 @@ class MainWindow(QMainWindow, QGroupBox):
         self.ui.fiatKRW.stateChanged.connect(self.updateComboBoxItem)
         self.ui.fiatBTC.stateChanged.connect(self.updateComboBoxItem)
         self.ui.fiatUSDT.stateChanged.connect(self.updateComboBoxItem)
+
+        # 주문가능정보 테스트
+        self.ui.test_buyButton.clicked.connect(self.order)
         return
 
 
@@ -198,6 +201,26 @@ class MainWindow(QMainWindow, QGroupBox):
         self.showText("단일 주문조회\n" + coin.singleOrdersInquiry(curTicker))
         return
 
+
+    #  주문하기
+    def order(self):
+        markets = self.ui.singleOrderItems.currentData()
+        if markets == None:
+           return
+
+        coin.orderChance(markets)
+        coin.order()
+        return
+
+    # 주문 가능정보 조회
+    def orderChance(self):
+        markets = self.ui.singleOrderItems.currentData()
+        if markets == None:
+           return
+
+        response = coin.orderChance(markets)
+        print(response.json())
+        return
 
 if __name__ == '__main__':  # 프로그램의 시작점일 때만 아래 코드 실행
     
