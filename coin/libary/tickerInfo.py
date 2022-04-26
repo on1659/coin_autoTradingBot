@@ -2,6 +2,8 @@ import requests
 import json
 import pyupbit
 
+
+
 def checkFilter(ticker, fiatList):
         for fiat in fiatList:
             if fiat == "ALL-":

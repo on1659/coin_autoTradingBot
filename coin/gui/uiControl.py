@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import *
 from PyQt5 import uic
 
 from libary import tickerInfo
+from libary import excuteFile
+
 from threading import Thread
 
 # Coin
@@ -39,7 +41,7 @@ class WorkerThread(QThread):
     def run(self):
         while True:
             self.finished.emit()
-            self.sleep(5)
+            self.sleep(1)
         return
 
 class MainWindow(QMainWindow, QGroupBox):
@@ -54,6 +56,7 @@ class MainWindow(QMainWindow, QGroupBox):
       # Thread
       self.worker = WorkerThread()
       self.worker.finished.connect(self.updateAccountsInquiryInfo)
+      self.worker.finished.connect(self.updateCandle) # 이건 뭐지
       self.worker.start()
 
       return
@@ -142,13 +145,13 @@ class MainWindow(QMainWindow, QGroupBox):
     # 내 계좌정보 업데이트
     @pyqtSlot()
     def updateAccountsInquiryInfo(self):
-        jsonData = coin.accountsInquiry()
+        accountJsonData = coin.accountsInquiry()
 
         totalEvaluatedPrice = 0.0
         totalBuyPrice = 0.0
         current_money = 0.0
 
-        for data in jsonData:
+        for data in accountJsonData:
 
             currency = data['currency']
             unit_currency = data['unit_currency']
@@ -193,6 +196,13 @@ class MainWindow(QMainWindow, QGroupBox):
         self.ui.textBrowser_total_asset.setPlainText(getMoneyValue(total_asset))                      # 현재  토탈 금액
         return
 
+    def updateCandle(self):
+        markets = self.ui.singleOrderItems.currentData()
+        if markets == None:
+           return
+        response = coin.requestCandles(markets)
+
+        return
 
     # 단일 주문조회 버튼 클릭
     # self.singleOrdersInquiry.setObjectName("singleOrdersInquiry")$
@@ -224,6 +234,8 @@ class MainWindow(QMainWindow, QGroupBox):
 
 if __name__ == '__main__':  # 프로그램의 시작점일 때만 아래 코드 실행
     
+    excuteFile.preExcute()
+
     # 데이터 초기화
     tickerInfoList = tickerInfo.getTickInfo()
     
